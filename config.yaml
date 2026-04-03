@@ -1,0 +1,85 @@
+# daily-research-report configuration
+# Edit this file to define what you want researched and how it gets delivered.
+
+# ── What to research ──────────────────────────────────────────────
+
+name: "AI Tools Daily Brief"
+
+# Describe your focus area in a paragraph. The research agents use this to
+# decide what is relevant and what to skip. Be specific about what you
+# actually use day-to-day so the filter stays tight.
+topic: >
+  Open-source AI tools for image generation, video generation, and 3D asset
+  creation. Focused on practical releases that run on consumer GPUs (under 24 GB
+  VRAM). Includes ComfyUI workflows, new model checkpoints and LoRAs,
+  diffusion-based video pipelines, and developer tooling around Claude Code and
+  MCP servers.
+
+# The editorial test every candidate must pass. Default answer is NO.
+editorial_bar: >
+  Include only if this would directly improve the reader's workflow today,
+  and here is the proof: ___.
+
+# ── Constraints ───────────────────────────────────────────────────
+
+max_items: 12           # hard cap even on busy days
+narrative_max_words: 600 # narrative.txt length limit
+lookback_hours: 24       # how far back to search
+
+# ── Sources ───────────────────────────────────────────────────────
+
+sources:
+  reddit:
+    - r/StableDiffusion
+    - r/comfyui
+    - r/LocalLLaMA
+
+  huggingface:
+    categories:
+      - image-editing
+      - image-to-video
+      - text-to-video
+      - text-to-image
+      - text-to-3d
+
+  github:
+    repos:
+      - comfyanonymous/ComfyUI
+      - Lightricks/LTX-Video
+      - anthropics/claude-code
+      - modelcontextprotocol/servers
+    blogs:
+      - https://blog.comfy.org
+      - https://docs.anthropic.com/changelog
+
+  web:
+    - https://civitai.com  # trending checkpoints, LoRAs, workflows
+
+  # Optional: people or orgs to always check first each run.
+  # If they published something new, it gets featured priority.
+  priority: []
+  #  - name: "Example Creator"
+  #    urls:
+  #      - https://github.com/example-creator
+
+# ── Signal strength ───────────────────────────────────────────────
+
+corroboration:
+  1_source: "include only if GitHub release or highly technical"
+  2_sources: "include if topic-relevant"
+  3_plus_sources: "strong signal, prioritize"
+
+# ── Report sections (omit any section that has no items) ──────────
+
+sections:
+  - "Featured"
+  - "Tools & Libraries"
+  - "Techniques & Workflows"
+  - "Ecosystem & Community"
+
+# ── Delivery ──────────────────────────────────────────────────────
+# Supported channels: kindle, slack, notion, email
+# Set the matching environment variables in .env (see .env.example).
+
+delivery:
+  channel: kindle
