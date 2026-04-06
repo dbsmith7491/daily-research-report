@@ -41,10 +41,12 @@ If a source category is empty or missing in config, skip that subagent.
 
 **Priority sources:** If `sources.priority` is defined, check those URLs first in every run. If anything new is found, give it featured priority.
 
+**Evergreen URLs:** If `sources.evergreen` is defined, always fetch those URLs regardless of whether they appear in `seen.json`. These are living documents (changelogs, RFCs, roadmaps) that update in-place. Let the subagent evaluate whether the content is new within the lookback window. The editorial bar is the only filter.
+
 ## After subagents complete
 
 1. Collect all candidates from all subagents
-2. Deduplicate against `seen.json`
+2. Deduplicate against `seen.json` (skip dedup for items sourced from evergreen URLs)
 3. Apply the editorial bar from `config.yaml`
 4. Apply corroboration rules from `config.yaml`
 5. If qualifying items remain:

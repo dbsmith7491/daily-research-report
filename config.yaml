@@ -62,6 +62,13 @@ sources:
   #    urls:
   #      - https://github.com/example-creator
 
+  # URLs that update in-place (changelogs, RFCs, roadmaps, release pages).
+  # These skip dedup entirely — the subagent fetches them every run and the
+  # editorial bar decides whether the new content is worth including.
+  evergreen:
+    - https://docs.anthropic.com/changelog
+    - https://blog.comfy.org
+
 # ── Signal strength ───────────────────────────────────────────────
 
 corroboration:

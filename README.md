@@ -6,22 +6,59 @@ No traditional app code -- just configuration files that steer Claude Code's res
 
 ## How it works
 
-```
-config.yaml         You define: topic, sources, editorial bar, delivery channel
-     |
-  prompt.md         Claude Code orchestrator spawns parallel research subagents
-     |
-  CLAUDE.md         Rules: dedup, corroboration, max items, editorial filter
-     |
-  /deliver          send.py routes the finished report to Kindle, Slack, Notion, or email
-```
+```mermaid
+flowchart TD
+    CONFIG["config.yaml\ntopic, sources, editorial bar,\ndelivery channel"]
+    PROMPT["daily.md\norchestrator"]
+    CLAUDE["CLAUDE.md\nrules engine"]
 
-1. Claude Code reads `config.yaml` for your topic and sources
-2. Spawns parallel subagents -- one per source category (Reddit, HuggingFace, GitHub, web)
-3. Each subagent searches, fetches pages, returns candidates with source URLs
-4. Orchestrator deduplicates (via `seen.json`), corroborates, applies your editorial filter
-5. If items qualify: writes `report.html`, `report.md`, `narrative.txt`, then delivers
-6. If nothing qualifies: logs a quiet day and exits
+    CONFIG --> PROMPT
+    CLAUDE -.->|"hard rules\ndedup, corroboration,\nmax items"| PROMPT
+
+    PROMPT --> SPAWN["Spawn parallel subagents"]
+
+    SPAWN --> S1["Source 1\nsubagent"]
+    SPAWN --> S2["Source 2\nsubagent"]
+    SPAWN --> S3["Source 3\nsubagent"]
+    SPAWN --> SN["Source N\nsubagent"]
+
+    S1 --> COLLECT["Collect candidates"]
+    S2 --> COLLECT
+    S3 --> COLLECT
+    SN --> COLLECT
+
+    COLLECT --> DEDUP["Deduplicate\nvia seen.json"]
+    DEDUP --> CORR["Corroborate\n& apply editorial filter"]
+
+    CORR -->|"items qualify"| WRITE["Write reports/YYYY-MM-DD/\nreport.html + report.md\n+ narrative.txt"]
+    CORR -->|"nothing qualifies"| QUIET["Log quiet day\nand exit"]
+
+    WRITE --> DELIVER["/deliver skill"]
+
+    DELIVER --> KINDLE["Kindle"]
+    DELIVER --> SLACK["Slack"]
+    DELIVER --> NOTION["Notion"]
+    DELIVER --> EMAIL["Email"]
+
+    style CONFIG fill:#1e1e2e,stroke:#585b70,color:#cdd6f4
+    style PROMPT fill:#1e1e2e,stroke:#585b70,color:#cdd6f4
+    style CLAUDE fill:#1e1e2e,stroke:#585b70,color:#cdd6f4
+    style SPAWN fill:#1e1e2e,stroke:#585b70,color:#cdd6f4
+    style S1 fill:#1e1e2e,stroke:#585b70,color:#cdd6f4
+    style S2 fill:#1e1e2e,stroke:#585b70,color:#cdd6f4
+    style S3 fill:#1e1e2e,stroke:#585b70,color:#cdd6f4
+    style SN fill:#1e1e2e,stroke:#585b70,color:#cdd6f4
+    style COLLECT fill:#1e1e2e,stroke:#585b70,color:#cdd6f4
+    style DEDUP fill:#1e1e2e,stroke:#585b70,color:#cdd6f4
+    style CORR fill:#1e1e2e,stroke:#585b70,color:#cdd6f4
+    style WRITE fill:#1e1e2e,stroke:#585b70,color:#cdd6f4
+    style QUIET fill:#1e1e2e,stroke:#585b70,color:#cdd6f4
+    style DELIVER fill:#1e1e2e,stroke:#585b70,color:#cdd6f4
+    style KINDLE fill:#1e1e2e,stroke:#585b70,color:#cdd6f4
+    style SLACK fill:#1e1e2e,stroke:#585b70,color:#cdd6f4
+    style NOTION fill:#1e1e2e,stroke:#585b70,color:#cdd6f4
+    style EMAIL fill:#1e1e2e,stroke:#585b70,color:#cdd6f4
+```
 
 ## Quick start
 
@@ -38,15 +75,17 @@ git clone https://github.com/YOUR_USERNAME/daily-research-report.git
 cd daily-research-report
 
 # 1. Configure your topic and sources
-cp config.yaml config.yaml  # edit this file
-# (see "Configuration" below)
+#    Edit config.yaml (see "Configuration" below)
 
 # 2. Set up delivery credentials
 cp .env.example .env
 # Fill in the values for your chosen delivery channel
 
-# 3. Run it
-claude -p prompt.md --allowedTools WebSearch,WebFetch,Task,Write,Bash,Read
+# 3. First run — backfill seen.json with 90 days of history
+claude -p first.md --allowedTools WebSearch,WebFetch,Task,Write,Bash,Read
+
+# 4. Daily runs — research + report + delivery
+claude -p daily.md --allowedTools WebSearch,WebFetch,Task,Write,Bash,Read
 ```
 
 ### Schedule it
@@ -54,13 +93,13 @@ claude -p prompt.md --allowedTools WebSearch,WebFetch,Task,Write,Bash,Read
 **Linux/macOS (cron):**
 ```bash
 # Every day at 6 AM
-0 6 * * * cd /path/to/daily-research-report && claude -p prompt.md --allowedTools WebSearch,WebFetch,Task,Write,Bash,Read
+0 6 * * * cd /path/to/daily-research-report && claude -p daily.md --allowedTools WebSearch,WebFetch,Task,Write,Bash,Read
 ```
 
 **Windows (Task Scheduler):**
 Create a task that runs:
 ```
-claude -p prompt.md --allowedTools WebSearch,WebFetch,Task,Write,Bash,Read
+claude -p daily.md --allowedTools WebSearch,WebFetch,Task,Write,Bash,Read
 ```
 with the working directory set to your clone of this repo.
 
@@ -96,6 +135,12 @@ sources:
       - https://example.com/blog
   web:
     - https://example.com/changelog
+
+  # Pages that update in-place (changelogs, RFCs, roadmaps).
+  # These skip dedup and get fetched every run.
+  evergreen:
+    - https://example.com/changelog
+    - https://example.com/roadmap
 
 # Report sections (omit if empty)
 sections:

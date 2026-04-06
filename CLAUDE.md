@@ -21,7 +21,8 @@ Automated daily pipeline that monitors configured sources and delivers a curated
 daily-research-report/
 ├── CLAUDE.md              ← you are here
 ├── config.yaml            ← topic, sources, delivery channel, editorial rules
-├── prompt.md              ← orchestrator prompt (run with: claude -p prompt.md)
+├── first.md               ← one-time backfill prompt (seeds seen.json with 90 days)
+├── daily.md             ← daily run prompt
 ├── seen.json              ← rolling 7-day dedup (auto-managed, don't edit mid-run)
 ├── .claude/
 │   └── skills/
@@ -41,8 +42,11 @@ daily-research-report/
 ## Running the Pipeline
 
 ```bash
-# Full run — research + report + delivery
-claude -p prompt.md --allowedTools WebSearch,WebFetch,Task,Write,Bash,Read
+# First time — backfill seen.json with 90 days of history
+claude -p first.md --allowedTools WebSearch,WebFetch,Task,Write,Bash,Read
+
+# Daily run — research + report + delivery
+claude -p daily.md --allowedTools WebSearch,WebFetch,Task,Write,Bash,Read
 
 # Interactive follow-up on today's report
 cd reports/$(date +%Y-%m-%d) && claude
@@ -96,7 +100,17 @@ Set the relevant variables in `.env` (see `.env.example`).
 
 - Rolling 7-day window, capped at 5000 entries
 - Stores URLs + titles from previous issues
-- Skip any item whose URL or story matches a recent entry
+- Skip any item whose URL matches a recent entry
 - Same story across multiple sources: include once, list all sources
 - Update only after report is finalized
 - Purge entries older than 7 days on each update
+
+### Evergreen URLs
+
+URLs listed under `sources.evergreen` in `config.yaml` skip dedup entirely. These are living documents (changelogs, RFCs, roadmaps, release pages) where the URL stays the same but content updates regularly.
+
+For evergreen URLs:
+- Always fetch the page, every run
+- Do NOT check `seen.json` for these URLs
+- Let the subagent evaluate whether there is new content within the `lookback_hours` window
+- The editorial bar is the only filter — if the new content passes, include it
